@@ -4,9 +4,10 @@ Všechny hotové projekty na AVR ATMEGA32a psané v programovacím jazyku C++. P
 
 Konfigurace:
 
-2 porty: k portu 1 je připojena klasická klávesnice k portu 3 je připojen klasický 4x 7segmentový displey
+3 porty: k portC je připojena klasická klávesnice 
+         ke spodnímu nibblu portuB a celému portuD je připojen klasický LCD displey
 
-Jedná se o krátký program takže není potřeba řešit paměť. Časově je naprosto přesný na 10 minut žádná odchylka.
+Jedná se o krátký program kalkulačky se základními funkcemi. Program pracuje s knihovnami <avr/io.h>, <avr/interrupt.h>, <util/delay.h>.
 
 Kód je napsán začátečníkem na procvičení základů programovacího jazyka C++. Kód je okomentovaný v potřebných částek kódu.
 

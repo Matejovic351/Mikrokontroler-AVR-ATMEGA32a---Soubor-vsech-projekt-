@@ -1,7 +1,7 @@
 /*
- * Kalkulacka.cpp
+ * Stopky.cpp
  *
- * Created: 26.08.2026 21:49:03
+ * Created: 03.04.2026 10:43:15
  * Author : rezacm
  */ 
 
@@ -10,283 +10,231 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
+const uint8_t znaky[] = {
+	0b00111111, //0
+	0b00000110, //1
+	0b01011011, //2
+	0b01001111, //3
+	0b01100110, //4
+	0b01101101, //5
+	0b01111101, //6
+	0b00000111, //7
+	0b01111111, //8
+	0b01101111,	//9
+	0b01000000, //-
+	0b00000000 //nic
+	
+};
+	
 const uint8_t klavesy[4][4] = {
-	{1,4,7,11},
-	{2,5,8,0},
-	{3,6,9,10},
-	{12,13,14,15} //+,-,*,/
+	{0,1,2,3},
+	{4,5,6,7},
+	{8,9,10,11},
+	{12,13,14,15}
 };
 
+void zobraz_znak(uint8_t pozice, uint8_t znak);
+uint8_t cti_klavesy();
+
+uint32_t milis = 0;
+uint8_t bezi = 0;
+uint8_t pozice;
+uint8_t hod = 0;
+uint8_t min = 0;
+uint8_t sec = 0;
+uint8_t mezicas = 0;
+uint8_t c_hod = 0;
+uint8_t c_min = 0;
+uint8_t c_sec = 0;
+int main(void)
+{
+	DDRA = 0b11111111;
+	DDRB = 0b00001111;
+	DDRC = 0b00001111;
+	
+	TIMSK = 0b00000001;
+	TCCR0 = 0b00000011;
+	sei();
+	
+    while (1) 
+    {
+		
+		uint8_t kl = cti_klavesy();
+		if (kl < 20)
+		{
+			if (kl == 11)
+			{
+				if (bezi == 0)
+				{
+					bezi = 1;
+					
+				}
+				else if (bezi == 1)
+				{
+					bezi = 0;
+				}
+			}
+			if (kl == 12)
+			{
+				bezi = 1;
+			}
+			if (kl == 13)
+			{
+				bezi = 0;
+				milis = 0;
+			}
+			if (kl == 14)
+			{
+				bezi = 2;
+				mezicas = 1;
+			}
+			if (kl == 15)
+			{
+				mezicas = 0;
+			}
+		}
+		while (cti_klavesy() != 99);
+		_delay_ms(5);
+		
+		
+	}
+}
+
 uint8_t cti_klavesy(){
-	for(uint8_t sloupec = 0 ; sloupec < 4 ; sloupec++){
-		PORTC = ~(0b00000001 << sloupec);
-		for(uint8_t radky = 0; radky < 4 ; radky++){
-			if(((~PINC)&(0b00010000<<radky))>0){
-				return klavesy[sloupec][radky];
+	for (uint8_t x = 0; x < 4; x++)
+	{
+		PORTC = ~(0b00000001 << x);
+		for (uint8_t y = 0; y < 4; y++)
+		{
+			if ((~(PINC)&(0b00010000 << y)) > 0)
+			{
+				return klavesy[x][y];
 			}
 		}
 	}
 	return 99;
 }
 
-void Zapis_pulz(){
-	PORTB = (PINB & 0b00111111);
-	_delay_us(5);
-	PORTB = (PINB | 0b10000000);
-	_delay_us(50);
-	PORTB = (PINB & 0b00111111);
-	_delay_us(50);
+void zobraz_znak(uint8_t pozice, uint8_t znak){
+	PORTA = 0b11111111;
+	PORTB = ~(0b00000001 << pozice);
+	PORTA = ~znaky[znak];
 }
 
-void Data_pulz(){
-	PORTB = (PINB | 0b01000000);
-	_delay_us(5);
-	PORTB = (PINB | 0b11000000);
-	_delay_us(50);
-	PORTB = (PINB & 0b01000000);
-	_delay_us(5);
-	PORTB = (PINB & 0b00000000);
-	_delay_us(50);
-}
-
-void Inicializace(){
-	_delay_ms(50);
-	PORTD = 0b00111100;
-	Zapis_pulz();
-	_delay_us(1);
-	Zapis_pulz();
-	_delay_us(1);
-	Zapis_pulz();
-	_delay_us(1);
-	PORTD = 0b00000001;
-	Zapis_pulz();
-	_delay_ms(50);
-	PORTD = 0b00001111;
-	Zapis_pulz();
-}
-
-void zapis_znaku(uint8_t znak){
-	PORTD = znak;
-	Data_pulz();
-}
-
-
-void pozice(uint8_t radek, uint8_t sloupec){
-	if(radek == 1)
-	{
-		PORTD = 0b10000000 | sloupec;
-		}
-		else if (radek == 2)
-		{
-		PORTD = 0b11000000 | sloupec;
-	}
-	Zapis_pulz();
-	_delay_us(1);
-}
-
-void Clear(){
-	PORTD = 0b00000001;
-	Zapis_pulz();
-	_delay_ms(50);
-}
-
-uint8_t kl = 0;
-uint8_t vypocet = 0;
-uint32_t cislo1 = 0;
-uint32_t cislo2 = 0;
-uint32_t vysledek = 0;
-
-void cely_vysledek(uint32_t vysledek){		//vysledek nap . 12345
-	uint32_t vypis = vysledek;
-	uint32_t rad = 1;
+ISR(TIMER0_OVF_vect){
+	TCNT0 = 6;
+	sec = (milis/1000)%60;
+	min = (milis/60000)%60;
+	hod = (milis/3600000)%24;
 	
-	while (vypis > 9)
-	{
-		rad *= 10;
-		vypis = vypis/10;
-	}
-	vypis = vysledek;
-	while(rad > 0)
-	{
-		uint32_t zbytek = vypis/rad;
-		zapis_znaku(zbytek + 48);
-		vypis = vypis%rad;
-		rad = rad/10;
-	}
-}
-
-
-void proved_vypocet(uint32_t cislo1, uint8_t vypocet, uint32_t cislo2){
-	Clear();
-	pozice(1, 0);
-	zapis_znaku('V');
-	zapis_znaku('Y');
-	zapis_znaku('S');
-	zapis_znaku('L');
-	zapis_znaku('E');
-	zapis_znaku('D');
-	zapis_znaku('E');
-	zapis_znaku('K');
-	zapis_znaku(':');
-	pozice(2, 0);
 	
-	if (vypocet == 1)
+	if (bezi == 1)
 	{
-		vysledek = (cislo1 + cislo2);
-		cely_vysledek(vysledek);
-	}else if (vypocet == 2)
-	{
-		vysledek = (cislo1 - cislo2);
-		cely_vysledek(vysledek);
-	}
-	else if (vypocet == 3)
-	{
-		vysledek = (cislo1 * cislo2);
-		cely_vysledek(vysledek);
-	}
-	else if (vypocet == 4)
-	{
-		if (cislo2 != 0)
+		milis++;
+		if (mezicas == 0)
 		{
-			vysledek = (cislo1/cislo2);
-			cely_vysledek(vysledek);
-		}
-		else
-		{
-			zapis_znaku('N');
-			zapis_znaku('E');
-			zapis_znaku('L');
-			zapis_znaku('Z');
-			zapis_znaku('E');	
-			zapis_znaku('!');
-		}
-	}
-}
-
-void proved_vypocet(uint32_t cislo1, uint8_t vypocet, uint32_t cislo2){
-	Clear();
-	pozice(1, 0);
-	zapis_znaku('V');
-	zapis_znaku('Y');
-	zapis_znaku('S');
-	zapis_znaku('L');
-	zapis_znaku('E');
-	zapis_znaku('D');
-	zapis_znaku('E');
-	zapis_znaku('K');
-	zapis_znaku(':');
-	pozice(2, 0);
-	
-	if (vypocet == 1)
-	{
-		vysledek = (cislo1 + cislo2);
-		cely_vysledek(vysledek);
-	}
-	else if (vypocet == 2)
-	{
-		vysledek = (cislo1 - cislo2);
-		cely_vysledek(vysledek);
-	}
-	else if (vypocet == 3)
-	{
-		vysledek = (cislo1 * cislo2);
-		cely_vysledek(vysledek);
-	}
-	else if (vypocet == 4)
-	{
-		if (cislo2 != 0)
-		{
-			vysledek = (cislo1 / cislo2);
-			cely_vysledek(vysledek);
-		}
-		else
-		{
-			zapis_znaku('N');
-			zapis_znaku('E');
-			zapis_znaku('L');
-			zapis_znaku('Z');
-			zapis_znaku('E');
-			zapis_znaku('!');
-		}
-		
-	}
-}
-
-
-int main(void)
-{
-	DDRC = 0b00001111;
-	DDRD = 0b11111111;
-	DDRB = 0b11000000;
-	
-	Inicializace();
-	Inicializace();
-	Clear();
-	pozice(1,0);
-	
-	while (1)
-	{
-		kl = cti_klavesy();
-		
-		if (kl != 99)
-		{
-			if (vypocet == 0)
+			if(hod == 0){
+				switch (pozice)
+				{
+					case 0:
+						zobraz_znak(0, sec%10);	
+					break;
+					case 1:
+						zobraz_znak(1, (sec/10)%10);
+					break;
+					case 2:
+						zobraz_znak(2, min%10);
+					break;
+					case 3:
+						zobraz_znak(3, (min/10)%10);
+					break;
+				}
+			}
+			if (hod > 0)
 			{
-				if (kl < 10)
-				{
-					cislo1 *= 10;
-					cislo1 += kl;
-					zapis_znaku('0' + kl);
+				switch(pozice){
+					case 0:
+						zobraz_znak(0, min%10);
+					break;
+					case 1:
+						zobraz_znak(1, (min/10)%10);
+					break;
+					case 2:
+						zobraz_znak(2, hod%10);
+					break;
+					case 3:
+						zobraz_znak(3, (hod/10)%10);
+					break;
 				}
-				else if (kl == 11)
-				{
-					cislo1 = 0;
-					cislo2 = 0;
-					vypocet = 0;
-					Clear();
-				}
-				else if (kl == 12)
-				{
-					vypocet = 1;
-					zapis_znaku('+');
-				}
-				else if (kl == 13)
-				{
-					vypocet = 2;
-					zapis_znaku('-');
-				}
-				else if (kl == 14)
-				{
-					vypocet = 3;
-					zapis_znaku('*');
-				}
-				else if (kl == 15)
-				{
-					vypocet = 4;
-					zapis_znaku('/');
-				}
-				if (kl < 10)
-				{
-					cislo2 *= 10;
-					cislo2 += kl;
-					zapis_znaku('0' + kl);
-				}
-				else if (kl == 11)
-				{
-					cislo1 = 0;
-					cislo2 = 0;
-					vypocet = 0;
-					Clear();
-				}
-				else if (kl == 10)
-				{
-					proved_vypocet(cislo1, vysledek, cislo2);
-					cislo1 = 0;
-					cislo2 = 0;
-					vysledek = 0;
-				}	
 			}
 		}
-		while(cti_klavesy() != 99);
-		_delay_ms(100);
+		else if(mezicas == 1){
+			if(hod == 0){
+				switch (pozice)
+				{
+					case 0:
+						zobraz_znak(0, c_sec%10);
+					break;
+					case 1:
+						zobraz_znak(1, (c_sec/10)%10);
+					break;
+					case 2:
+						zobraz_znak(2, c_min%10);
+					break;
+					case 3:
+						zobraz_znak(3, (c_min/10)%10);
+					break;
+				}
+			}
+			if (hod > 0)
+			{
+				switch (pozice)
+				{
+					case 0:
+						zobraz_znak(0, c_min%10);
+					break;
+					case 1:
+						zobraz_znak(1, (c_min/10)%10);
+					break;
+					case 2:
+						zobraz_znak(2, c_hod%10);
+					break;
+					case 3:
+						zobraz_znak(3, (c_hod/10)%10);
+					break;
+				}
+			}
+		}
 	}
+	if (bezi == 0)
+	{
+		switch (pozice)
+		{
+			case 0:
+			zobraz_znak(0, sec%10);
+			break;
+			case 1:
+			zobraz_znak(1, (sec/10)%10);
+			break;
+			case 2:
+			zobraz_znak(2, min%10);
+			break;
+			case 3:
+			zobraz_znak(3, (min/10)%10);
+			break;
+		}
+	}
+	if (bezi == 2)
+	{ 
+		c_sec = sec;
+		c_min = min;
+		mezicas = 1;
+		bezi = 1;
+	}
+	pozice++;
+	if (pozice > 3)
+	{
+		pozice = 0;
+	}
+}
+

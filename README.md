@@ -8,7 +8,8 @@ Konfigurace:
          ke spodnímu nibblu portuB je připojen LCD displeje
          a zbytek na portuA
 
-Jedná se o krátký program Zámku s PINEM a PUKEM se základními funkcemi. Program pracuje s knihovnami <avr/io.h>, <avr/interrupt.h>, <util/delay.h>. 
+Jedná se o krátký program Hodin s budikem se základními funkcemi. Program pracuje s knihovnami <avr/io.h>, <avr/interrupt.h>, <util/delay.h>. 
+Kromě přerušení pracuje program s časem, který je přesný jak reálné hodinky.
 
 Kód je napsán začátečníkem na procvičení základů programovacího jazyka C++. Kód je okomentovaný v potřebných částek kódu.
 

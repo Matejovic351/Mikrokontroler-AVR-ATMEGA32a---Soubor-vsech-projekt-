@@ -1,5 +1,5 @@
 /*
- * Kalkulacka02Kuba.cpp
+ * Kalkulacka.cpp
  *
  * Created: 26.08.2026 21:49:03
  * Author : rezacm
